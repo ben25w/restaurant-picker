@@ -1,0 +1,105 @@
+<!doctype html>
+<meta charset='utf-8'>
+<title>Restaurant Picker</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<style>
+  body { font-family: system-ui; max-width: 500px; margin: 40px auto; padding: 20px; }
+  input { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; }
+  button { padding: 10px 20px; margin: 10px 5px 10px 0; font-size: 14px; cursor: pointer; }
+  .add-btn { background: #4CAF50; color: white; border: none; border-radius: 4px; }
+  .suggest-btn { background: #2196F3; color: white; border: none; border-radius: 4px; font-size: 18px; padding: 15px 30px; }
+  .recent-btn { background: #ff9800; color: white; border: none; border-radius: 4px; }
+  .remove-btn { background: #f44336; color: white; border: none; border-radius: 4px; font-size: 12px; }
+  #suggestion { font-size: 32px; font-weight: bold; margin: 30px 0; text-align: center; color: #333; }
+  #lastChosen { font-size: 12px; color: #666; margin-top: 10px; }
+  .list { margin-top: 30px; }
+  .restaurant-item { background: #f5f5f5; padding: 10px; margin: 8px 0; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+  .info { flex: 1; }
+  .restaurant-name { font-weight: bold; }
+  .last-chosen { font-size: 12px; color: #999; margin-top: 4px; }
+</style>
+
+<h1>🍽️ Restaurant Picker</h1>
+
+<input id="restaurantInput" type="text" placeholder="Type a restaurant name...">
+<button class="add-btn" onclick="addRestaurant()">Add Restaurant</button>
+
+<div id="suggestion">Click "Get Suggestion" to start</div>
+<div id="lastChosen"></div>
+
+<button class="suggest-btn" onclick="getSuggestion()">Get Suggestion</button>
+<button class="recent-btn" onclick="markRecent()">Had This Recently</button>
+
+<div class="list">
+  <h3>Your Restaurants:</h3>
+  <div id="restaurantList"></div>
+</div>
+
+<script>
+  let restaurants = JSON.parse(localStorage.getItem('restaurants')) || [];
+  let currentSuggestion = null;
+
+  function addRestaurant() {
+    const input = document.getElementById('restaurantInput');
+    const name = input.value.trim();
+    if (!name) return alert('Please enter a restaurant name');
+    restaurants.push({ name, lastChosen: null });
+    input.value = '';
+    save();
+    render();
+  }
+
+  function getSuggestion() {
+    if (restaurants.length === 0) return alert('Add some restaurants first!');
+    
+    // Sort by last chosen (oldest first), restaurants never chosen go to top
+    const sorted = [...restaurants].sort((a, b) => {
+      const aTime = a.lastChosen || 0;
+      const bTime = b.lastChosen || 0;
+      return aTime - bTime;
+    });
+    
+    currentSuggestion = sorted[0];
+    displaySuggestion();
+  }
+
+  function displaySuggestion() {
+    document.getElementById('suggestion').textContent = currentSuggestion.name;
+    const lastText = currentSuggestion.lastChosen 
+      ? `Last chosen: ${new Date(currentSuggestion.lastChosen).toLocaleDateString()}`
+      : 'Never chosen yet';
+    document.getElementById('lastChosen').textContent = lastText;
+  }
+
+  function markRecent() {
+    if (!currentSuggestion) return alert('Get a suggestion first');
+    currentSuggestion.lastChosen = Date.now();
+    save();
+    getSuggestion();
+  }
+
+  function removeRestaurant(name) {
+    restaurants = restaurants.filter(r => r.name !== name);
+    save();
+    render();
+  }
+
+  function render() {
+    const list = document.getElementById('restaurantList');
+    list.innerHTML = restaurants.map(r => `
+      <div class="restaurant-item">
+        <div class="info">
+          <div class="restaurant-name">${r.name}</div>
+          <div class="last-chosen">${r.lastChosen ? `Last: ${new Date(r.lastChosen).toLocaleDateString()}` : 'Never chosen'}</div>
+        </div>
+        <button class="remove-btn" onclick="removeRestaurant('${r.name}')">Remove</button>
+      </div>
+    `).join('');
+  }
+
+  function save() {
+    localStorage.setItem('restaurants', JSON.stringify(restaurants));
+  }
+
+  render();
+</script>
