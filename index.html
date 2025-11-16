@@ -2,6 +2,7 @@
 <meta charset='utf-8'>
 <title>Restaurant Picker</title>
 <meta name='viewport' content='width=device-width, initial-scale=1'>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { color-scheme: light dark; }
   body { font-family: system-ui; max-width: 500px; margin: 40px auto; padding: 20px; }
@@ -56,43 +57,67 @@
 <button class="add-btn" onclick="addRestaurant()">Add Restaurant</button>
 
 <script>
-  let restaurants = JSON.parse(localStorage.getItem('restaurants')) || [];
+  const SUPABASE_URL = 'https://gojnnipsxdhcvlrgjios.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdvam5uaXBzeGRoY3ZscmdqaW9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyNzE3MTUsImV4cCI6MjA3ODg0NzcxNX0.Ozs5l9yMYcOArvD4N9vFU5WslrBBN0MX9E-RyHwlcSI';
+
+  const { createClient } = window.supabase;
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let restaurants = [];
   let currentSuggestion = null;
 
-  function addRestaurant() {
+  async function loadRestaurants() {
+    const { data, error } = await supabase
+      .from('restaurants')
+      .select('*')
+      .order('last_chosen', { ascending: true, nullsFirst: true });
+    
+    if (error) return console.error('Error loading:', error);
+    restaurants = data || [];
+    render();
+  }
+
+  async function addRestaurant() {
     const input = document.getElementById('restaurantInput');
     const name = input.value.trim();
     if (!name) return alert('Please enter a restaurant name');
-    restaurants.push({ name, lastChosen: null });
+    
+    const { error } = await supabase
+      .from('restaurants')
+      .insert([{ name, last_chosen: null }]);
+    
+    if (error) return alert('Error adding restaurant');
     input.value = '';
-    save();
-    render();
+    loadRestaurants();
   }
 
   function getSorted() {
     return [...restaurants].sort((a, b) => {
-      const aTime = a.lastChosen || 0;
-      const bTime = b.lastChosen || 0;
+      const aTime = a.last_chosen || 0;
+      const bTime = b.last_chosen || 0;
       return aTime - bTime;
     });
   }
 
-  function getSuggestion() {
+  async function getSuggestion() {
     if (restaurants.length === 0) return alert('Add some restaurants first!');
     
     const sorted = getSorted();
     currentSuggestion = sorted[0];
-    currentSuggestion.lastChosen = Date.now();
-    save();
-    displaySuggestion();
-    render();
+    
+    await supabase
+      .from('restaurants')
+      .update({ last_chosen: Date.now() })
+      .eq('id', currentSuggestion.id);
+    
+    loadRestaurants();
   }
 
   function skipSuggestion() {
     if (!currentSuggestion) return alert('Get a suggestion first');
     
     const sorted = getSorted();
-    const nextIndex = sorted.findIndex(r => r.name === currentSuggestion.name) + 1;
+    const nextIndex = sorted.findIndex(r => r.id === currentSuggestion.id) + 1;
     
     if (nextIndex >= sorted.length) {
       currentSuggestion = sorted[0];
@@ -105,8 +130,8 @@
 
   function displaySuggestion() {
     document.getElementById('suggestion').textContent = currentSuggestion.name;
-    const lastText = currentSuggestion.lastChosen 
-      ? `Last chosen: ${new Date(currentSuggestion.lastChosen).toLocaleDateString()}`
+    const lastText = currentSuggestion.last_chosen 
+      ? `Last chosen: ${new Date(currentSuggestion.last_chosen).toLocaleDateString()}`
       : 'Never chosen yet';
     document.getElementById('lastChosen').textContent = lastText;
   }
@@ -116,28 +141,40 @@
     getSuggestion();
   }
 
-  function removeRestaurant(name) {
-    restaurants = restaurants.filter(r => r.name !== name);
-    save();
-    render();
+  async function removeRestaurant(id) {
+    await supabase
+      .from('restaurants')
+      .delete()
+      .eq('id', id);
+    
+    loadRestaurants();
   }
 
   function render() {
+    const sorted = getSorted();
+    if (currentSuggestion) {
+      displaySuggestion();
+    }
+    
     const list = document.getElementById('restaurantList');
     list.innerHTML = restaurants.map(r => `
       <div class="restaurant-item">
         <div class="info">
           <div class="restaurant-name">${r.name}</div>
-          <div class="last-chosen">${r.lastChosen ? `Last: ${new Date(r.lastChosen).toLocaleDateString()}` : 'Never chosen'}</div>
+          <div class="last-chosen">${r.last_chosen ? `Last: ${new Date(r.last_chosen).toLocaleDateString()}` : 'Never chosen'}</div>
         </div>
-        <button class="remove-btn" onclick="removeRestaurant('${r.name}')">Remove</button>
+        <button class="remove-btn" onclick="removeRestaurant(${r.id})">Remove</button>
       </div>
     `).join('');
   }
 
-  function save() {
-    localStorage.setItem('restaurants', JSON.stringify(restaurants));
-  }
+  loadRestaurants();
 
-  render();
+  // Listen for real-time changes
+  supabase
+    .channel('restaurants')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurants' }, () => {
+      loadRestaurants();
+    })
+    .subscribe();
 </script>
