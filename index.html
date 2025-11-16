@@ -3,6 +3,7 @@
 <title>Restaurant Picker</title>
 <meta name='viewport' content='width=device-width, initial-scale=1'>
 <style>
+  * { color-scheme: light dark; }
   body { font-family: system-ui; max-width: 500px; margin: 40px auto; padding: 20px; }
   input { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; }
   button { padding: 10px 20px; margin: 10px 0; font-size: 14px; cursor: pointer; width: 100%; }
@@ -10,13 +11,29 @@
   .suggest-btn { background: #2196F3; color: white; border: none; border-radius: 4px; font-size: 18px; padding: 15px 30px; }
   .recent-btn { background: #ff9800; color: white; border: none; border-radius: 4px; }
   .remove-btn { background: #f44336; color: white; border: none; border-radius: 4px; font-size: 12px; width: auto; margin: 0; }
-  #suggestion { font-size: 32px; font-weight: bold; margin: 30px 0; text-align: center; color: #333; }
-  #lastChosen { font-size: 12px; color: #666; margin-bottom: 20px; text-align: center; }
+  #suggestion { font-size: 32px; font-weight: bold; margin: 30px 0; text-align: center; }
+  #lastChosen { font-size: 12px; margin-bottom: 20px; text-align: center; }
   .list { margin: 30px 0; }
-  .restaurant-item { background: #f5f5f5; padding: 10px; margin: 8px 0; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+  .restaurant-item { padding: 10px; margin: 8px 0; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
   .info { flex: 1; }
   .restaurant-name { font-weight: bold; }
-  .last-chosen { font-size: 12px; color: #999; margin-top: 4px; }
+  .last-chosen { font-size: 12px; margin-top: 4px; opacity: 0.7; }
+
+  @media (prefers-color-scheme: light) {
+    body { background: white; color: #333; }
+    input { background: white; color: #333; border: 1px solid #ddd; }
+    .restaurant-item { background: #f5f5f5; }
+    #suggestion { color: #333; }
+    #lastChosen { color: #666; }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body { background: #1e1e1e; color: #e0e0e0; }
+    input { background: #2d2d2d; color: #e0e0e0; border: 1px solid #444; }
+    .restaurant-item { background: #2d2d2d; }
+    #suggestion { color: #e0e0e0; }
+    #lastChosen { color: #b0b0b0; }
+  }
 </style>
 
 <h1>🍽️ Restaurant Picker</h1>
