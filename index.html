@@ -10,6 +10,7 @@
   .add-btn { background: #4CAF50; color: white; border: none; border-radius: 4px; }
   .suggest-btn { background: #2196F3; color: white; border: none; border-radius: 4px; font-size: 18px; padding: 15px 30px; }
   .recent-btn { background: #ff9800; color: white; border: none; border-radius: 4px; }
+  .skip-btn { background: #9c27b0; color: white; border: none; border-radius: 4px; }
   .remove-btn { background: #f44336; color: white; border: none; border-radius: 4px; font-size: 12px; width: auto; margin: 0; }
   #suggestion { font-size: 32px; font-weight: bold; margin: 30px 0; text-align: center; }
   #lastChosen { font-size: 12px; margin-bottom: 20px; text-align: center; }
@@ -43,6 +44,7 @@
 
 <button class="suggest-btn" onclick="getSuggestion()">Get Suggestion</button>
 <button class="recent-btn" onclick="markRecent()">Had This Recently</button>
+<button class="skip-btn" onclick="skipSuggestion()">Not Feeling This</button>
 
 <div class="list">
   <h3>Your Restaurants:</h3>
@@ -67,21 +69,38 @@
     render();
   }
 
-  function getSuggestion() {
-    if (restaurants.length === 0) return alert('Add some restaurants first!');
-    
-    // Sort by last chosen (oldest first), restaurants never chosen go to top
-    const sorted = [...restaurants].sort((a, b) => {
+  function getSorted() {
+    return [...restaurants].sort((a, b) => {
       const aTime = a.lastChosen || 0;
       const bTime = b.lastChosen || 0;
       return aTime - bTime;
     });
+  }
+
+  function getSuggestion() {
+    if (restaurants.length === 0) return alert('Add some restaurants first!');
     
+    const sorted = getSorted();
     currentSuggestion = sorted[0];
     currentSuggestion.lastChosen = Date.now();
     save();
     displaySuggestion();
     render();
+  }
+
+  function skipSuggestion() {
+    if (!currentSuggestion) return alert('Get a suggestion first');
+    
+    const sorted = getSorted();
+    const nextIndex = sorted.findIndex(r => r.name === currentSuggestion.name) + 1;
+    
+    if (nextIndex >= sorted.length) {
+      currentSuggestion = sorted[0];
+    } else {
+      currentSuggestion = sorted[nextIndex];
+    }
+    
+    displaySuggestion();
   }
 
   function displaySuggestion() {
